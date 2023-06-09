@@ -47,8 +47,10 @@ class Game {
     bool makeMove(Move move); // makes a move on the board after checking if it's legal, returns the legality
     bool getPieceColor(int piece);
     bool canPieceOccupy(int piece, Coord coord);
-    bool isEnemyOnSquare(int piece, Coord coord);
     Coord getKingCoord(bool color);
+    bool isCoordEmpty(Coord coord);
+    bool isCheck(bool color); // Returns if a given color is in check.
     int getPawnStartingRank(bool color);
 };
+void printMove(Move move);
 #endif

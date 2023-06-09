@@ -18,63 +18,7 @@ Coord pos_to_coord(sf::Vector2f pos) {
     coord.y = pos.y / SQUARE_SIZE; 
     return coord;
 }
-void printMove(Move move) {
-    // TODO: tidy this up because this is long and ugly
-    switch(move.origin.x) {
-        case 0:
-        std::cout << "a";
-        break;
-        case 1:
-        std::cout << "b";
-        break;
-        case 2:
-        std::cout << "c";
-        break;
-        case 3:
-        std::cout << "d";
-        break;
-        case 4:
-        std::cout << "e";
-        break;
-        case 5:
-        std::cout << "f";
-        break;
-        case 6:
-        std::cout << "g";
-        break;
-        case 7:
-        std::cout << "h";
-        break;
-    }
-    std::cout << 8 - move.origin.y;
-    switch(move.target.x) {
-        case 0:
-        std::cout << "a";
-        break;
-        case 1:
-        std::cout << "b";
-        break;
-        case 2:
-        std::cout << "c";
-        break;
-        case 3:
-        std::cout << "d";
-        break;
-        case 4:
-        std::cout << "e";
-        break;
-        case 5:
-        std::cout << "f";
-        break;
-        case 6:
-        std::cout << "g";
-        break;
-        case 7:
-        std::cout << "h";
-        break;
-    }
-    std::cout << 8 - move.target.y << std::endl;
-}
+
 int main() {
     sf::RenderWindow window(sf::VideoMode(SQUARE_SIZE * 8, SQUARE_SIZE * 8), "Hello World!");
     sf::Texture texture;
