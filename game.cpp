@@ -68,14 +68,14 @@ void printMove(Move move) {
     }
     std::cout << 8 - move.target.y << std::endl;
 }
-std::vector<Move> Game::generatePseudoLegalMoves(bool color) {
+std::vector<Move> Game::generatePseudoLegalMoves(bool color, bool excludeCastling=false) {
     std::vector<Move> pseudoLegalMoves;
     for(int i = 0; i < 8; i++) {
         for(int j = 0; j < 8; j++) {
             int piece = this->board[i][j];
             bool isPiece = this->board[i][j] != 0;
             if(isPiece && this->getPieceColor(piece) == color) {
-                std::vector<Move> piecePseudoLegalMoves = this->generatePseudoLegalMovesForPieceAtCoord(Coord{j, i});
+                std::vector<Move> piecePseudoLegalMoves = this->generatePseudoLegalMovesForPieceAtCoord(Coord{j, i}, excludeCastling);
                 pseudoLegalMoves.insert(pseudoLegalMoves.begin(), piecePseudoLegalMoves.begin(), piecePseudoLegalMoves.end());
             }
         }
@@ -102,7 +102,7 @@ int Game::getPawnStartingRank(bool color) {
     if(color) return 6;
     else return 1;
 }
-std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord) {
+std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord, bool excludeCastling=false) {
     std::vector<Move> pseudoLegalMoves;
     int piece = this->board[coord.y][coord.x];
     switch(piece) {
@@ -188,6 +188,7 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord) {
         }
         case k:
         case K: {
+            bool color = this->getPieceColor(piece);
             if(inGrid(coord.x + 1) && inGrid(coord.y) && this->canPieceOccupy(piece, Coord {coord.x + 1, coord.y}))
                 pseudoLegalMoves.push_back(Move {coord, Coord {coord.x + 1, coord.y}});
             if(inGrid(coord.x - 1) && inGrid(coord.y)  && this->canPieceOccupy(piece, Coord {coord.x -1, coord.y}))
@@ -204,6 +205,37 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord) {
                 pseudoLegalMoves.push_back(Move {coord, Coord {coord.x - 1, coord.y + 1}});
             if(inGrid(coord.x - 1) && inGrid(coord.y - 1)  && this->canPieceOccupy(piece, Coord {coord.x - 1, coord.y - 1}))
                 pseudoLegalMoves.push_back(Move {coord, Coord {coord.x - 1, coord.y - 1}});
+            // castling kingside
+            if(!excludeCastling) {
+                if(
+                    ((color && this->canWhiteCastleKingside) || (!color && this->canBlackCastleKingside))
+                    && this->isCoordEmpty(Coord{coord.x+1,coord.y})
+                    && this->isCoordEmpty(Coord{coord.x+2,coord.y})
+                    && !this->isAttacked(color, Coord{coord.x+1,coord.y}) 
+                    && !this->isAttacked(color, Coord{coord.x+2,coord.y})
+                ) {
+                    Move castle;
+                    castle.origin = coord;
+                    castle.target = Coord {coord.x + 2, coord.y};
+                    castle.castling = true;
+                    pseudoLegalMoves.push_back(castle);
+                }
+                // castling queenside
+                if(
+                    ((color && this->canWhiteCastleQueenside) || (!color && this->canBlackCastleQueenside))
+                    && this->isCoordEmpty(Coord{coord.x-1,coord.y})
+                    && this->isCoordEmpty(Coord{coord.x-2,coord.y})
+                    && !this->isAttacked(color, Coord{coord.x-1,coord.y}) 
+                    && !this->isAttacked(color, Coord{coord.x-2,coord.y})
+                ) {
+                    Move castle;
+                    castle.origin = coord;
+                    castle.target = Coord {coord.x - 2, coord.y};
+                    castle.castling = true;
+                    pseudoLegalMoves.push_back(castle);
+                }
+            }
+            
             break;
         }
         case q:
@@ -284,7 +316,6 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord) {
             if(this->canPieceOccupy(piece, oneSquare) && this->isCoordEmpty(oneSquare)) {
                 pseudoLegalMoves.push_back(Move {coord, oneSquare});
             }
-            
             break;
         }
         default: {
@@ -293,21 +324,21 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord) {
     }
     return pseudoLegalMoves;
 }
-bool Game::isCheck(bool color) {
-    Coord kingCoord = this->getKingCoord(color);
-    std::vector<Move> opponentPseudoLegalMoves = this->generatePseudoLegalMoves(!color);
+bool Game::isAttacked(bool color, Coord coord) {
+    // Returns if a given square is attacked for the given color.
+    std::vector<Move> opponentPseudoLegalMoves = this->generatePseudoLegalMoves(!color, true);
     for(auto opponentMove: opponentPseudoLegalMoves) {
-        if(opponentMove.target == kingCoord) {
-            std::cout << "check: ";
-            printMove(opponentMove);
+        if(opponentMove.target == coord) {
             return true;
         }
     }
     return false;
 }
+bool Game::isCheck(bool color) {
+    return this->isAttacked(color, this->getKingCoord(color));
+}
 std::vector<Move> Game::getLegalMoves(bool color) {
-    // This function should just filter out the moves that put one's own king in check.
-    // To do this, the move should first be played out, simulated on the board.
+    // Simulate the move on the board.
     // Then, check if the king's square is part of the opponent's legal moves.
     // If it is, then filter out the move from the list.
     // Restore the board to its initial position by undoing the move. 
@@ -330,60 +361,43 @@ std::vector<Move> Game::getLegalMoves(bool color) {
         if(isLegal)
             legalMoves.push_back(move);
     }
-    for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++)
-        {
-            switch(this->board[i][j]) {
-                case K:
-                std::cout << "K";
-                break;
-                case Q:
-                std::cout << "Q";
-                break;
-                case N:
-                std::cout << "N";
-                break;
-                case B:
-                std::cout << "B";
-                break;
-                case R:
-                std::cout << "R";
-                break;
-                case P:
-                std::cout << "P";
-                break;
-                case k:
-                std::cout << "k";
-                break;
-                case q:
-                std::cout << "q";
-                break;
-                case n:
-                std::cout << "n";
-                break;
-                case b:
-                std::cout << "b";
-                break;
-                case r:
-                std::cout << "r";
-                break;
-                case p:
-                std::cout << "p";
-                break;
-                default:
-                std::cout << ".";
-                break;
-            }
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-    } 
     return legalMoves;
 }
 bool Game::getPieceColor(int piece) {
     return piece < 7; // is the arbitrarily assigned number below 7?
 }
-bool Game::makeMove(Move move) {
+void Game::handleMove(Move move) {
+    // This function is meant to handle moves that affect the game state in a special way, and apply the according side effects.
+    std::cout << move.castling << std::endl;
+    if(move.castling) {
+        bool kingside = move.target.x > 4;
+        this->board[7][move.target.x-1] = this->board[7][7];
+        this->board[7][7] = 0;
+        std::cout << "castled!" << std::endl;
+    }
+    if(this->board[move.target.y][move.target.x] == K) {
+        this->canWhiteCastleKingside = false;
+        this->canWhiteCastleQueenside = false;
+    }
+    if(this->board[move.target.y][move.target.x] == k) {
+        this->canBlackCastleKingside = false;
+        this->canBlackCastleQueenside = false;
+    }
+    if(move.origin.x == 7 && move.origin.y == 7) {
+        this->canWhiteCastleKingside = false;
+    }
+    if(move.origin.x == 0 && move.origin.y == 7) {
+        this->canWhiteCastleQueenside = false;
+    }
+    if(move.origin.x == 7 && move.origin.y == 0) {
+        this->canBlackCastleKingside = false;
+    }
+    if(move.origin.x == 0 && move.origin.y == 0) {
+        this->canBlackCastleQueenside = false;
+    }
+}
+MoveResult Game::makeMove(Move& move) {
+    // TODO: set kingside and queenside accordingly
     bool pieceColor = this->getPieceColor(this->board[move.origin.y][move.origin.x]); 
     bool isPieceTurn = pieceColor == this->turn;
     if(isPieceTurn) {
@@ -393,16 +407,18 @@ bool Game::makeMove(Move move) {
             Move legalMove = legalMoves.at(i);
             if (legalMove == move) {
                 isMoveLegal = true;
+                move = legalMove; // include additional information other than origin & target.
                 break;
             }
         }
         if(!isMoveLegal) {
-            return false;
+            return MoveResult {false, false, false};
         }
         this->board[move.target.y][move.target.x] = board[move.origin.y][move.origin.x];
         this->board[move.origin.y][move.origin.x] = 0;
+        this->handleMove(move);
         this->turn = !this->turn; // flip turn
-        return true;
+        return MoveResult {true, move.castling && move.target.x > 4, move.castling && move.target.x < 4};
     }
-    return false;
+    return MoveResult {false, false, false};
 }
