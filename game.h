@@ -30,6 +30,7 @@ struct MoveResult {
     bool kingside = false;
     bool queenside = false;
     Coord enPassantSquare;
+    int promotionPiece = -1;
 };
 class Game {
     protected:
@@ -61,6 +62,7 @@ class Game {
     bool isCoordEmpty(Coord coord);
     bool isCheck(bool color); // Returns if a given color is in check.
     int getPawnStartingRank(bool color);
+    int getBackrank(bool color);
     bool isAttacked(bool color, Coord coord);
     void handleMove(Move move);
 };

@@ -102,6 +102,10 @@ int Game::getPawnStartingRank(bool color) {
     if(color) return 6;
     else return 1;
 }
+int Game::getBackrank(bool color) {
+    if(color) return 7;
+    else return 0;
+}
 std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord, bool excludeCastling=false) {
     std::vector<Move> pseudoLegalMoves;
     int piece = this->board[coord.y][coord.x];
@@ -308,16 +312,40 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord, boo
                 pseudoLegalMoves.push_back(Move {coord, twoSquares});
             }
             if(this->canPieceOccupy(piece, leftDiagonal) && !this->isCoordEmpty(leftDiagonal)) {
-                pseudoLegalMoves.push_back(Move {coord, leftDiagonal});
-            }
-            if(this->canPieceOccupy(piece, leftDiagonal) && !this->isCoordEmpty(leftDiagonal)) {
-                pseudoLegalMoves.push_back(Move {coord, leftDiagonal});
+                Move move;
+                move.origin = coord;
+                move.target = leftDiagonal;
+                if(leftDiagonal.y == this->getBackrank(!color)) {
+                    if(color)
+                    move.promotionPiece = Q;
+                    else
+                    move.promotionPiece = q;
+                }
+                pseudoLegalMoves.push_back(move);
             }
             if(this->canPieceOccupy(piece, rightDiagonal) && !this->isCoordEmpty(rightDiagonal)) {
-                pseudoLegalMoves.push_back(Move {coord, rightDiagonal});
+                Move move;
+                move.origin = coord;
+                move.target = rightDiagonal;
+                if(rightDiagonal.y == this->getBackrank(!color)) {
+                    if(color)
+                    move.promotionPiece = Q;
+                    else
+                    move.promotionPiece = q;
+                }
+                pseudoLegalMoves.push_back(move);
             }
             if(this->canPieceOccupy(piece, oneSquare) && this->isCoordEmpty(oneSquare)) {
-                pseudoLegalMoves.push_back(Move {coord, oneSquare});
+                Move move;
+                move.origin = coord;
+                move.target = oneSquare;
+                if(oneSquare.y == this->getBackrank(!color)) {
+                    if(color)
+                    move.promotionPiece = Q;
+                    else
+                    move.promotionPiece = q;
+                }
+                pseudoLegalMoves.push_back(move);
             }
             // en passant
             if(abs(this->lastMove.target.y - this->lastMove.origin.y) == 2
@@ -327,7 +355,6 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord, boo
                 )
             ) {
                 if(coord.y == this->lastMove.target.y && abs(this->lastMove.target.x - coord.x) == 1) {
-                    std::cout << "can en passant" << std::endl;
                     Move enPassant;
                     enPassant.origin = coord;
                     enPassant.target = Coord {this->lastMove.target.x, this->lastMove.target.y + multiplier};
@@ -387,12 +414,10 @@ bool Game::getPieceColor(int piece) {
 }
 void Game::handleMove(Move move) {
     // This function is meant to handle moves that affect the game state in a special way, and apply the according side effects.
-    std::cout << move.castling << std::endl;
     if(move.castling) {
         bool kingside = move.target.x > 4;
         this->board[7][move.target.x-1] = this->board[7][7];
         this->board[7][7] = 0;
-        std::cout << "castled!" << std::endl;
     }
     if(this->board[move.target.y][move.target.x] == K) {
         this->canWhiteCastleKingside = false;
@@ -415,8 +440,10 @@ void Game::handleMove(Move move) {
         this->canBlackCastleQueenside = false;
     }
     if(move.enPassantSquare != Coord {-1, -1}) {
-        std::cout << "handle en passant" << move.enPassantSquare.x << move.enPassantSquare.y << std::endl;
         this->board[move.enPassantSquare.y][move.enPassantSquare.x] = 0;
+    }
+    if(move.promotionPiece != -1) {
+        this->board[move.target.y][move.target.x] = move.promotionPiece;
     }
 }
 MoveResult Game::makeMove(Move& move) {
@@ -442,7 +469,7 @@ MoveResult Game::makeMove(Move& move) {
         this->handleMove(move);
         this->turn = !this->turn; // flip turn
         this->lastMove = move;
-        return MoveResult {true, move.castling && move.target.x > 4, move.castling && move.target.x < 4, move.enPassantSquare};
+        return MoveResult {true, move.castling && move.target.x > 4, move.castling && move.target.x < 4, move.enPassantSquare, move.promotionPiece};
     }
     return MoveResult {false, false, false};
 }

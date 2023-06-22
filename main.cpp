@@ -120,7 +120,6 @@ int main() {
                                             
                                         }
                                         if(result.enPassantSquare.x != -1 && sprites[i] == spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x]) {
-                                            std::cout << "rendering en passant" << std::endl;
                                             spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x] = NULL;
                                             delete sprites[i];
                                             delete spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x];
@@ -130,21 +129,23 @@ int main() {
                                     }
                                     spriteGrid[move.target.y][move.target.x] = spriteGrid[move.origin.y][move.origin.x];
                                     spriteGrid[move.origin.y][move.origin.x] = NULL;
-                                    std::cout << spriteGrid[move.target.y][move.target.x] << std::endl;
                                     selectedSprite->setPosition(snappedPos);
 
                                     // update pieces
                                     if(result.kingside) {
-                                        std::cout << "that was a castle!" << std::endl;
                                         spriteGrid[move.target.y][move.target.x - 1] = spriteGrid[move.target.y][move.target.x + 1];
                                         spriteGrid[move.target.y][move.target.x + 1] = NULL;
                                         spriteGrid[move.target.y][move.target.x - 1]->setPosition(sf::Vector2f(SQUARE_SIZE * (move.target.x - 1), SQUARE_SIZE * move.target.y));
                                     }
                                     else if(result.queenside) {
-                                        std::cout << "that was a castle!" << std::endl;
                                         spriteGrid[move.target.y][move.target.x + 1] = spriteGrid[move.target.y][move.target.x - 2];
                                         spriteGrid[move.target.y][move.target.x - 2] = NULL;
                                         spriteGrid[move.target.y][move.target.x + 1]->setPosition(sf::Vector2f(SQUARE_SIZE * (move.target.x + 1), SQUARE_SIZE * move.target.y));
+                                    }
+                                    else if(result.promotionPiece != -1) {
+                                        sf::IntRect intRect;
+                                        intRect = sf::IntRect(SPRITE_SIZE*((game.board[move.target.y][move.target.x]-1)%6), SPRITE_SIZE*floor(game.board[move.target.y][move.target.x]/7), SPRITE_SIZE, SPRITE_SIZE);
+                                        spriteGrid[move.target.y][move.target.x]->setTextureRect(intRect);
                                     }
                                 }
                                 else {
@@ -152,16 +153,6 @@ int main() {
                                     selectedSprite->setPosition(selectedSpriteOrigin);
                                 }
                                 selectedSprite = NULL;
-
-                                // update the sprites, if there is check
-                                if(game.isCheck(true)) {
-                                    std::cout << "White is in check!";
-                                    whiteKing->setColor(sf::Color::Red);
-                                }
-                                else if(game.isCheck(false)) {
-                                    std::cout << "Black is in check!";
-                                    blackKing->setColor(sf::Color::Red);
-                                }
                         }
                     }
                 case sf::Event::MouseMoved:
