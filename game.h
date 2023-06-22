@@ -29,6 +29,7 @@ struct MoveResult {
     bool success = false;
     bool kingside = false;
     bool queenside = false;
+    Coord enPassantSquare;
 };
 class Game {
     protected:

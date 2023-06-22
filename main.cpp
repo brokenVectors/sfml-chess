@@ -119,6 +119,14 @@ int main() {
                                             sprites[i] = NULL;
                                             
                                         }
+                                        if(result.enPassantSquare.x != -1 && sprites[i] == spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x]) {
+                                            std::cout << "rendering en passant" << std::endl;
+                                            spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x] = NULL;
+                                            delete sprites[i];
+                                            delete spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x];
+                                            sprites[i] = NULL;
+                                            spriteGrid[result.enPassantSquare.y][result.enPassantSquare.x] = NULL;
+                                        }
                                     }
                                     spriteGrid[move.target.y][move.target.x] = spriteGrid[move.origin.y][move.origin.x];
                                     spriteGrid[move.origin.y][move.origin.x] = NULL;

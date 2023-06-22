@@ -310,11 +310,30 @@ std::vector<Move> Game::generatePseudoLegalMovesForPieceAtCoord(Coord coord, boo
             if(this->canPieceOccupy(piece, leftDiagonal) && !this->isCoordEmpty(leftDiagonal)) {
                 pseudoLegalMoves.push_back(Move {coord, leftDiagonal});
             }
+            if(this->canPieceOccupy(piece, leftDiagonal) && !this->isCoordEmpty(leftDiagonal)) {
+                pseudoLegalMoves.push_back(Move {coord, leftDiagonal});
+            }
             if(this->canPieceOccupy(piece, rightDiagonal) && !this->isCoordEmpty(rightDiagonal)) {
                 pseudoLegalMoves.push_back(Move {coord, rightDiagonal});
             }
             if(this->canPieceOccupy(piece, oneSquare) && this->isCoordEmpty(oneSquare)) {
                 pseudoLegalMoves.push_back(Move {coord, oneSquare});
+            }
+            // en passant
+            if(abs(this->lastMove.target.y - this->lastMove.origin.y) == 2
+            && (
+                (color && this->board[this->lastMove.target.y][this->lastMove.target.x] == p)
+                || (!color && this->board[this->lastMove.target.y][this->lastMove.target.x] == P)
+                )
+            ) {
+                if(coord.y == this->lastMove.target.y && abs(this->lastMove.target.x - coord.x) == 1) {
+                    std::cout << "can en passant" << std::endl;
+                    Move enPassant;
+                    enPassant.origin = coord;
+                    enPassant.target = Coord {this->lastMove.target.x, this->lastMove.target.y + multiplier};
+                    enPassant.enPassantSquare = this->lastMove.target;
+                    pseudoLegalMoves.push_back(enPassant);
+                }
             }
             break;
         }
@@ -395,6 +414,10 @@ void Game::handleMove(Move move) {
     if(move.origin.x == 0 && move.origin.y == 0) {
         this->canBlackCastleQueenside = false;
     }
+    if(move.enPassantSquare != Coord {-1, -1}) {
+        std::cout << "handle en passant" << move.enPassantSquare.x << move.enPassantSquare.y << std::endl;
+        this->board[move.enPassantSquare.y][move.enPassantSquare.x] = 0;
+    }
 }
 MoveResult Game::makeMove(Move& move) {
     // TODO: set kingside and queenside accordingly
@@ -418,7 +441,8 @@ MoveResult Game::makeMove(Move& move) {
         this->board[move.origin.y][move.origin.x] = 0;
         this->handleMove(move);
         this->turn = !this->turn; // flip turn
-        return MoveResult {true, move.castling && move.target.x > 4, move.castling && move.target.x < 4};
+        this->lastMove = move;
+        return MoveResult {true, move.castling && move.target.x > 4, move.castling && move.target.x < 4, move.enPassantSquare};
     }
     return MoveResult {false, false, false};
 }
